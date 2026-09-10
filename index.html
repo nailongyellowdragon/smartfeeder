@@ -90,17 +90,12 @@
   </div>
 
   <script>
-    // ==========================================
-    // 1. PENGATURAN PIN (VERSI ENKRIPSI)
-    // ==========================================
-    // Teks panjang di bawah ini adalah hasil enkripsi dari PIN: 12345
-    // Kalau ada yang inspect, mereka cuma liat kode acak ini.
+
     const PIN_HASH = "a33751dc2c5e06264ed3b5373e392f16b4e5262b2a6a72726e3cdb8c9d598f85";; 
 
     function cekLogin() {
       const input = document.getElementById('pinInput').value;
       
-      // Enkripsi input dari user, lalu cocokkan dengan hash di atas
       if (sha256(input) === PIN_HASH) {
         document.getElementById('loginScreen').classList.add('hidden');
         document.getElementById('mainApp').classList.remove('hidden');
