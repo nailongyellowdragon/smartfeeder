@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Dog Feeder</title>
+
+  <!-- Google Fonts: Poppins -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS Framework (via CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- SweetAlert2 Library (Untuk Popup Notifikasi Cantik) -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Library Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <style>
+    /* Kustomisasi font dan efek tombol 3D */
+    body { font-family: 'Poppins', sans-serif; }
+    .btn-3d {
+      box-shadow: 0 6px 0 #c53030;
+      transition: all 0.1s;
+    }
+    .btn-3d:active {
+      box-shadow: 0 0px 0 #c53030;
+      transform: translateY(6px);
+    }
+    
+    /* Menyembunyikan panah pada input type number */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+      -webkit-appearance: none; 
+      margin: 0; 
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-amber-100 to-orange-200 min-h-screen flex items-center justify-center p-4">
+
+  <!-- Card Container -->
+  <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 sm:p-8 relative overflow-hidden border-4 border-white">
+    
+    <!-- Header Section -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-20 h-20 bg-orange-100 rounded-full mb-4 shadow-inner">
+        <span class="text-4xl">🐶</span>
+      </div>
+      <h2 class="text-2xl font-bold text-gray-800">Smart Dog Feeder</h2>
+      <p class="text-sm text-gray-500 mt-1">Atur jadwal makan anabulmu! 🐾</p>
+    </div>
+    
+    <!-- Form Section -->
+    <div class="space-y-5">
+      <!-- Mode Operasi -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">⚙️ Mode Operasi</label>
+        <select id="mode" class="w-full bg-gray-50 border border-gray-200 text-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all cursor-pointer">
+          <option value="1">Mode 1: Sensor Ultrasonik</option>
+          <option value="2">Mode 2: Auto Timer Otomatis</option>
+        </select>
+      </div>
+
+      <!-- Lama Pintu Buka -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">⏱️ Lama Pintu Buka (Detik)</label>
+        <input type="number" id="openTime" step="0.1" min="0.1" max="10" placeholder="Contoh: 0.2" class="w-full bg-gray-50 border border-gray-200 text-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all">
+      </div>
+
+      <!-- Interval Timer -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">⏳ Interval Timer (Jam)</label>
+        <input type="number" id="interval" step="0.1" min="0.1" placeholder="Contoh: 1.5 (untuk 1.5 jam)" class="w-full bg-gray-50 border border-gray-200 text-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all">
+      </div>
+    </div>
+
+    <!-- Tombol Simpan -->
+    <button onclick="simpanSetting()" class="w-full mt-6 bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-orange-200 transform transition-transform active:scale-95 flex items-center justify-center gap-2">
+      <span>Simpan Pengaturan</span> 💾
+    </button>
+
+    <!-- Divider -->
+    <div class="relative flex py-6 items-center">
+      <div class="flex-grow border-t border-gray-200"></div>
+      <span class="flex-shrink-0 mx-4 text-gray-400 text-sm font-medium">Atau</span>
+      <div class="flex-grow border-t border-gray-200"></div>
+    </div>
+
+    <!-- Tombol Drop Makanan Manual -->
+    <button onclick="dropManual()" class="btn-3d w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-4 rounded-2xl flex flex-col items-center justify-center gap-1 text-lg">
+      DROP MAKANAN SEKARANG! 🍖
+    </button>
+
+  </div>
+
+  <script>
+    // ==========================================
+    // PASTE API KEY & URL FIREBASE KAMU DI SINI
+    // ==========================================
+    var firebaseConfig = {
+      apiKey: "AIzaSyAon_TxbK52ZwgorBlmd9sJtZmYx25HW4k",
+      databaseURL: "https://smartfeeder-80a72-default-rtdb.asia-southeast1.firebasedatabase.app/"
+    };
+    
+    // Inisialisasi Firebase
+    firebase.initializeApp(firebaseConfig);
+    var db = firebase.database();
+
+    // Mengambil data dari Firebase saat web pertama kali dibuka
+    db.ref('/feeder').once('value', function(snapshot) {
+      if(snapshot.exists()) {
+        var data = snapshot.val();
+        document.getElementById('mode').value = data.mode || 1;
+        document.getElementById('openTime').value = data.openTime || 2;
+        document.getElementById('interval').value = data.interval || 1;
+      }
+    });
+
+    // Fungsi untuk tombol Simpan
+    function simpanSetting() {
+      var m = parseInt(document.getElementById('mode').value);
+      var o = parseFloat(document.getElementById('openTime').value);
+      var i = parseFloat(document.getElementById('interval').value);
+
+      // Validasi input kosong
+      if(!o || !i) {
+        Swal.fire({ icon: 'error', title: 'Oops...', text: 'Pastikan waktu dan interval sudah diisi!' });
+        return;
+      }
+
+      db.ref('/feeder').update({
+        mode: m,
+        openTime: o,
+        interval: i
+      }).then(() => {
+        // Menggunakan SweetAlert2 untuk notifikasi sukses
+        Swal.fire({
+          icon: 'success',
+          title: 'Tersimpan!',
+          text: 'Pengaturan berhasil diperbarui ke alat.',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      }).catch((error) => {
+        Swal.fire({ icon: 'error', title: 'Gagal Menyimpan', text: error.message });
+      });
+    }
+
+    // Fungsi untuk tombol Drop Makanan Manual
+    function dropManual() {
+      db.ref('/feeder').update({ trigger: 1 }).then(() => {
+        // Menggunakan SweetAlert2 untuk efek makan
+        Swal.fire({
+          icon: 'success',
+          title: 'Nyam Nyam! 🦴',
+          text: 'Makanan sedang dijatuhkan!',
+          timer: 2000,
+          showConfirmButton: false,
+          iconColor: '#f97316'
+        });
+      }).catch((error) => {
+        Swal.fire({ icon: 'error', title: 'Gagal', text: error.message });
+      });
+    }
+  </script>
+</body>
+</html>
