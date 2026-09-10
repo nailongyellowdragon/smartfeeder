@@ -14,6 +14,9 @@
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+  <!-- Library SHA-256 untuk Enkripsi PIN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.9.0/sha256.min.js"></script>
+
   <!-- Library Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -33,8 +36,8 @@
     <div class="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4 shadow-inner">
       <span class="text-4xl">🔒</span>
     </div>
-    <h2 class="text-2xl font-bold text-gray-800 mb-1">Portal rahasia </h2>
-    <p class="text-sm text-gray-500 mb-6">Haiyolooo passwordny ap </p>
+    <h2 class="text-2xl font-bold text-gray-800 mb-1">Portal Majikan</h2>
+    <p class="text-sm text-gray-500 mb-6">Masukkan PIN rahasia untuk akses Feeder</p>
     
     <input type="password" id="pinInput" placeholder="Masukkan PIN..." class="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-3 text-center text-2xl tracking-[0.25em] focus:outline-none focus:ring-2 focus:ring-orange-400 mb-6 font-bold" onkeypress="handleEnter(event)">
     
@@ -43,10 +46,8 @@
     </button>
   </div>
 
-
-  <!-- ==================== HALAMAN DASBOR (Awalnya Disembunyikan) ==================== -->
+  <!-- ==================== HALAMAN DASBOR ==================== -->
   <div id="mainApp" class="hidden bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 sm:p-8 relative overflow-hidden border-4 border-white">
-    <!-- Header -->
     <div class="text-center mb-8">
       <div class="inline-flex items-center justify-center w-20 h-20 bg-orange-100 rounded-full mb-4 shadow-inner">
         <span class="text-4xl">🐶</span>
@@ -55,7 +56,6 @@
       <p class="text-sm text-gray-500 mt-1">Atur jadwal makan anabulmu! 🐾</p>
     </div>
     
-    <!-- Form -->
     <div class="space-y-5">
       <div>
         <label class="block text-sm font-semibold text-gray-700 mb-2">⚙️ Mode Operasi</label>
@@ -64,31 +64,26 @@
           <option value="2">Mode 2: Auto Timer Otomatis</option>
         </select>
       </div>
-
       <div>
         <label class="block text-sm font-semibold text-gray-700 mb-2">⏱️ Lama Pintu Buka (Detik)</label>
         <input type="number" id="openTime" step="0.1" min="0.1" max="10" placeholder="Contoh: 0.2" class="w-full bg-gray-50 border border-gray-200 text-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-400">
       </div>
-
       <div>
         <label class="block text-sm font-semibold text-gray-700 mb-2">⏳ Interval Timer (Jam)</label>
         <input type="number" id="interval" step="0.1" min="0.1" placeholder="Contoh: 1.5 (untuk 1.5 jam)" class="w-full bg-gray-50 border border-gray-200 text-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-400">
       </div>
     </div>
 
-    <!-- Tombol Simpan -->
     <button onclick="simpanSetting()" class="w-full mt-6 bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-orange-200 transform transition-transform active:scale-95 flex items-center justify-center gap-2">
       <span>Simpan Pengaturan</span> 💾
     </button>
 
-    <!-- Divider -->
     <div class="relative flex py-6 items-center">
       <div class="flex-grow border-t border-gray-200"></div>
       <span class="flex-shrink-0 mx-4 text-gray-400 text-sm font-medium">Atau</span>
       <div class="flex-grow border-t border-gray-200"></div>
     </div>
 
-    <!-- Tombol Drop Manual -->
     <button onclick="dropManual()" class="btn-3d w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-4 rounded-2xl flex flex-col items-center justify-center gap-1 text-lg">
       DROP MAKANAN SEKARANG! 🍖
     </button>
@@ -96,35 +91,32 @@
 
   <script>
     // ==========================================
-    // 1. PENGATURAN PIN RAHASIA
+    // 1. PENGATURAN PIN (VERSI ENKRIPSI)
     // ==========================================
-    const PIN_RAHASIA = "28871"; // <-- GANTI PIN KAMU DI SINI (jangan lupa tanda kutipnya)
+    // Teks panjang di bawah ini adalah hasil enkripsi dari PIN: 12345
+    // Kalau ada yang inspect, mereka cuma liat kode acak ini.
+    const PIN_HASH = "a33751dc2c5e06264ed3b5373e392f16b4e5262b2a6a72726e3cdb8c9d598f85";; 
 
     function cekLogin() {
       const input = document.getElementById('pinInput').value;
-      if (input === PIN_RAHASIA) {
-        // Jika PIN benar: Sembunyikan login, tampilkan dasbor
+      
+      // Enkripsi input dari user, lalu cocokkan dengan hash di atas
+      if (sha256(input) === PIN_HASH) {
         document.getElementById('loginScreen').classList.add('hidden');
         document.getElementById('mainApp').classList.remove('hidden');
-        
-        // Panggil data firebase setelah berhasil login
         initFirebaseData();
       } else {
-        // Jika PIN salah
-        Swal.fire({ icon: 'error', title: 'PIN Salah!', text: 'Siapa kamu?! Jangan iseng ya!', confirmButtonColor: '#d33' });
-        document.getElementById('pinInput').value = ''; // Kosongkan input
+        Swal.fire({ icon: 'error', title: 'PIN Salah!', text: 'Hayo mau ngapain?!', confirmButtonColor: '#d33' });
+        document.getElementById('pinInput').value = ''; 
       }
     }
 
-    // Biar bisa tekan "Enter" di keyboard buat login
     function handleEnter(e) {
-      if(e.key === 'Enter') {
-        cekLogin();
-      }
+      if(e.key === 'Enter') cekLogin();
     }
 
     // ==========================================
-    // 2. KONFIGURASI FIREBASE KAMU
+    // 2. KONFIGURASI FIREBASE
     // ==========================================
     var firebaseConfig = {
       apiKey: "AIzaSyAon_TxbK52ZwgorBlmd9sJtZmYx25HW4k",
@@ -133,7 +125,6 @@
     firebase.initializeApp(firebaseConfig);
     var db = firebase.database();
 
-    // Fungsi ambil data (baru dipanggil pas login sukses)
     function initFirebaseData() {
       db.ref('/feeder').once('value', function(snapshot) {
         if(snapshot.exists()) {
@@ -145,9 +136,6 @@
       });
     }
 
-    // ==========================================
-    // 3. FUNGSI TOMBOL DASBOR
-    // ==========================================
     function simpanSetting() {
       var m = parseInt(document.getElementById('mode').value);
       var o = parseFloat(document.getElementById('openTime').value);
